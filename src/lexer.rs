@@ -1,30 +1,34 @@
 use std::fs;
 use std::io::{BufReader, Bytes, Read};
 
-#[derive(Debug)]
-pub enum TokenTypes {
+#[derive(Debug, Eq, PartialEq, Hash, Copy, Clone)]
+pub enum SymbolKind {
     Identifier,
     Number,
     Punctuation,
     Operator,
     Whitespace,
+
+    // AST nodes
+    Assign,
+    Expr,
 }
 
-impl TokenTypes {
-    pub fn can_add_char(char: char, current_state: &TokenTypes) -> bool {
+impl SymbolKind {
+    pub fn can_add_char(char: char, current_state: &SymbolKind) -> bool {
         match current_state {
-            TokenTypes::Identifier => char.is_alphanumeric() || char == '_',
-            TokenTypes::Number => char.is_numeric(),
+            SymbolKind::Identifier => char.is_alphanumeric() || char == '_',
+            SymbolKind::Number => char.is_numeric(),
             _ => false,
         }
     }
-    pub fn choose_type_by_char(char: char) -> Result<TokenTypes, ()> {
+    pub fn choose_type_by_char(char: char) -> Result<SymbolKind, ()> {
         match char {
-            'a'..='z' => Ok(TokenTypes::Identifier),
-            '0'..='9' => Ok(TokenTypes::Number),
-            '+' | '-' | '*' | '/' | '=' => Ok(TokenTypes::Operator),
-            ' ' | '\n' | '\t' => Ok(TokenTypes::Whitespace),
-            '(' | ')' | '{' | '}' | '[' | ']' | ';' => Ok(TokenTypes::Punctuation),
+            'a'..='z' => Ok(SymbolKind::Identifier),
+            '0'..='9' => Ok(SymbolKind::Number),
+            '+' | '-' | '*' | '/' | '=' => Ok(SymbolKind::Operator),
+            ' ' | '\n' | '\t' => Ok(SymbolKind::Whitespace),
+            '(' | ')' | '{' | '}' | '[' | ']' | ';' => Ok(SymbolKind::Punctuation),
 
             _ => Err(()),
         }
@@ -32,19 +36,29 @@ impl TokenTypes {
 }
 #[derive(Debug)]
 pub struct Token {
-    kind: TokenTypes,
+    kind: SymbolKind,
     lexeme: String,
     line_number: u32,
 }
 
 impl Token {
-    pub fn new(kind: TokenTypes, lexeme: String, line_number: u32) -> Token {
+    pub fn new(kind: SymbolKind, lexeme: String, line_number: u32) -> Token {
         Token {
             kind,
             lexeme,
             line_number,
         }
     }
+    pub fn get_kind(&self) -> SymbolKind {
+        self.kind
+    }
+    pub fn get_value(&self) -> String {
+        self.lexeme.clone()
+    }
+    pub fn get_line_number(&self) -> u32 {
+        self.line_number
+    }
+
 }
 #[derive(Eq, PartialEq, Debug)]
 enum LexerState {
@@ -61,7 +75,7 @@ pub struct Lexer {
 }
 macro_rules! start_new_token {
     ($self:expr, $char:expr) => {{
-        let token_type = TokenTypes::choose_type_by_char($char)
+        let token_type = SymbolKind::choose_type_by_char($char)
             .unwrap_or_else(|_| panic!("Error parsing token {}", $self.current_line));
 
         $self.current_token = Some(Token::new(token_type, String::new(), $self.current_line));
@@ -89,18 +103,17 @@ impl Lexer {
     pub fn get_next_token(&mut self) -> Option<Token> {
         for byte in &mut self.file_content {
             let char = byte.unwrap() as char;
-            let mut last_token: Token = Token::new(TokenTypes::Whitespace, String::new(), 0);
 
             if self.current_state == LexerState::InToken {
                 if let Some(current_token) = self.current_token.as_mut() {
-                    if TokenTypes::can_add_char(char, &current_token.kind) {
+                    if SymbolKind::can_add_char(char, &current_token.kind) {
                         current_token.lexeme.push(char);
                     } else {
                         if char == '\n' {
                             self.current_line += 1;
                         }
                         self.current_state = LexerState::Start;
-                        last_token = self.current_token.take().unwrap();
+                        let last_token = self.current_token.take().unwrap();
                         start_new_token!(self, char);
                         return Some(last_token);
                     }
