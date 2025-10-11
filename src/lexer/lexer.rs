@@ -13,7 +13,7 @@ pub enum SymbolKind {
     Assign,
     Expr,
     BinaryOperation,
-  
+
     Empty,
 }
 

@@ -17,8 +17,10 @@ pub static RULES: Lazy<HashMap<SymbolKind, Vec<(SymbolKind, Vec<SymbolKind>)>>> 
                 SymbolKind::Assign,
                 vec![
                     SymbolKind::Identifier,
+                    SymbolKind::Identifier,
                     SymbolKind::Operator,
                     SymbolKind::Expr,
+                    SymbolKind::Punctuation,
                 ],
             ),
             (
@@ -31,6 +33,10 @@ pub static RULES: Lazy<HashMap<SymbolKind, Vec<(SymbolKind, Vec<SymbolKind>)>>> 
     m.insert(
         SymbolKind::Number,
         vec![(SymbolKind::Expr, vec![SymbolKind::Number])],
+    );
+    m.insert(
+        SymbolKind::BinaryOperation,
+        vec![(SymbolKind::Expr, vec![SymbolKind::BinaryOperation])],
     );
 
     m
