@@ -4,12 +4,36 @@ use std::collections::VecDeque;
 use crate::info;
 
 #[derive(Debug)]
+enum Operator {
+    Add,
+    Sub,
+    Mul,
+    Div,
+}
+impl Operator {
+    pub fn from_char(char: char) -> Option<Operator> {
+        match char {
+            '+' => Some(Operator::Add),
+            '-' => Some(Operator::Sub),
+            '*' => Some(Operator::Mul),
+            '/' => Some(Operator::Div),
+            _ => None,
+        }
+    }
+}
+#[derive(Debug)]
 enum ASTNode {
     Number(i32),
     String(String),
     Bool(bool),
     Identifier(String),
     Assign { name: Box<ASTNode>, expr: Box<ASTNode> },
+    BinaryOperation {
+        left: Box<ASTNode>,
+        right: Box<ASTNode>,
+        operation: Box<ASTNode>,
+    },
+    Operator(Operator),
     Empty(), // Empty node for none value kinds (=, +, -, etc)
 }
 impl ASTNode {
@@ -17,6 +41,7 @@ impl ASTNode {
         match token.get_kind() {
             SymbolKind::Number => ASTNode::Number(token.get_value().parse().unwrap()),
             SymbolKind::Identifier => ASTNode::Identifier(token.get_value()),
+            SymbolKind::Operator => ASTNode::Operator(Operator::from_char(token.get_value().chars().next().unwrap()).unwrap()),
             _ => ASTNode::Empty(),
         }
     }
@@ -27,6 +52,10 @@ struct SymbolNode {
     value: ASTNode,
 }
 impl SymbolNode {
+
+    pub fn new(kind: SymbolKind, value: ASTNode) -> SymbolNode {
+        SymbolNode { kind, value }
+    }
     pub fn get_value(self) -> ASTNode {
         self.value
     }
@@ -84,40 +113,48 @@ impl Parser {
         }
     self.create_ast_node(rule);
         info!("{:?}", self.symbols);
-    
+
         true
     }
 
     fn create_ast_node(&mut self, rule: &(SymbolKind, Vec<SymbolKind>)) {
         let mut symbols: VecDeque<SymbolNode> = VecDeque::new();
         for _ in 0..rule.1.len() {
-            let symbol = self.symbols.pop().unwrap();
-            if symbol.kind == SymbolKind::Operator {
-                continue;
-            }
-            symbols.push_front(symbol);
+            symbols.push_front(self.symbols.pop().unwrap());
         }
 
         match rule.0 {
             SymbolKind::Assign => {
+                let name = Box::new(symbols.pop_front().unwrap().get_value());
+
+                // Pop the '='
+                let _ = symbols.pop_front();
+
+                let expr = Box::new(symbols.pop_front().unwrap().value);
+
                 let assign_node = ASTNode::Assign {
-                    name: Box::new(symbols.pop_front().unwrap().get_value()),
-                    expr: Box::new(symbols.pop_front().unwrap().value),
+                    name,
+                    expr,
                 };
-                self.symbols.push(SymbolNode {
-                    kind: SymbolKind::Assign,
-                    value: assign_node,
-                });
+
+                self.symbols.push(SymbolNode::new(SymbolKind::Assign, assign_node));
             }
             SymbolKind::Expr => {
                 let expr_node = symbols.pop_front().unwrap().get_value();
-                self.symbols.push(SymbolNode {
-                    kind: SymbolKind::Expr,
-                    value: expr_node,
-                });
+                self.symbols.push(SymbolNode::new(SymbolKind::Expr, expr_node));
             }
+            SymbolKind::BinaryOperation => {
+                let binary_operation_node = ASTNode::BinaryOperation {
+                    left: Box::new(symbols.pop_front().unwrap().get_value()),
+                    operation: Box::new(symbols.pop_front().unwrap().get_value()),
+                    right: Box::new(symbols.pop_front().unwrap().get_value()),
+                };
+                self.symbols.push(SymbolNode::new(SymbolKind::BinaryOperation, binary_operation_node));
+            }
+
             _ => {}
         }
 
     }
+
 }

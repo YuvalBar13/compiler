@@ -12,6 +12,9 @@ pub enum SymbolKind {
     // AST nodes
     Assign,
     Expr,
+    BinaryOperation,
+  
+    Empty,
 }
 
 impl SymbolKind {
