@@ -1,4 +1,4 @@
-use crate::parser::parser::ASTNode;
+use crate::parser::ast::ASTNode;
 use crate::utils::{MAGENTA, RESET};
 pub fn print_ast_tree(node: &ASTNode, prefix: String, is_last: bool) {
     let connector = if is_last { "└── " } else { "├── " };
@@ -62,7 +62,7 @@ pub fn print_ast_tree(node: &ASTNode, prefix: String, is_last: bool) {
 }
 
 // Convenience function to print from the root
-pub fn visualize_ast(ast: &Vec<crate::parser::parser::SymbolNode>) {
+pub fn visualize_ast(ast: &Vec<crate::parser::ast::SymbolNode>) {
     println!("{} \n=== AST Visualization ===\n", MAGENTA);
     for (i, symbol_node) in ast.iter().enumerate() {
         let is_last = i == ast.len() - 1;

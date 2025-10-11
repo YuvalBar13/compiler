@@ -1,118 +1,12 @@
-use crate::lexer::lexer::{Lexer, SymbolKind, Token};
+use crate::lexer::lexer::{Lexer, SymbolKind};
 use super::rules::RULES;
 use std::collections::VecDeque;
-use crate::{debug, error, info};
+use crate::{error, info};
 use crate::helper::visualize_ast::visualize_ast;
-#[derive(Debug, Eq, PartialEq, Hash)]
-pub enum Operator {
-    Add,
-    Sub,
-    Mul,
-    Div,
-    Equal,
-}
-impl Operator {
-    pub fn from_char(char: char) -> Option<Operator> {
-        match char {
-            '+' => Some(Operator::Add),
-            '-' => Some(Operator::Sub),
-            '*' => Some(Operator::Mul),
-            '/' => Some(Operator::Div),
-            '=' => Some(Operator::Equal),
-            _ => None,
-        }
-    }
-}
-#[derive(Debug, PartialEq, Eq, Hash)]
-pub enum Type {
-    Integer,
-    String,
-    Bool,
-}
-impl Type {
-    pub fn from_identifier(identifier: &ASTNode) -> Option<Type> {
-        if let ASTNode::Identifier(ident) = identifier {
-            match ident.as_str() {
-                "int" => Some(Type::Integer),
-                "string" => Some(Type::String),
-                "bool" => Some(Type::Bool),
-                _ => None,
-            }
-        } else {
-            None
-        }
-    }
-
-}
-#[derive(Debug, PartialEq, Eq, Hash,)]
-pub enum Punctuation {
-    OpenBracket,
-    CloseBracket,
-    OpenBrace,
-    CloseBrace,
-    OpenParen,
-    CloseParen,
-    Semicolon,
-}
-
-impl Punctuation {
-    pub fn from_char(ch: char) -> Option<Punctuation> {
-        match ch {
-            '{' => Some(Punctuation::OpenBrace),
-            '}' => Some(Punctuation::CloseBrace),
-            '(' => Some(Punctuation::OpenParen),
-            ')' => Some(Punctuation::CloseParen),
-            '[' => Some(Punctuation::OpenBracket),
-            ']' => Some(Punctuation::CloseBracket),
-            ';' => Some(Punctuation::Semicolon),
-            _ => None,
-        }
-    }
-}
-#[derive(Debug, PartialEq, Eq, Hash)]
-pub enum ASTNode {
-    Number(i32),
-    String(String),
-    Bool(bool),
-    Identifier(String),
-    Assign { typ: Type, name: Box<ASTNode>, expr: Box<ASTNode> },
-    BinaryOperation {
-        left: Box<ASTNode>,
-        right: Box<ASTNode>,
-        operation: Box<ASTNode>,
-    },
-    Operator(Operator),
-    Punctuation(Punctuation),
-    Empty(), // Empty node for none value kinds (=, +, -, etc)
-}
-impl ASTNode {
-    pub fn from_token_value(token: &Token) -> ASTNode {
-        match token.get_kind() {
-            SymbolKind::Number => ASTNode::Number(token.get_value().parse().unwrap()),
-            SymbolKind::Identifier => ASTNode::Identifier(token.get_value()),
-            SymbolKind::Operator => ASTNode::Operator(Operator::from_char(token.get_value().chars().next().unwrap()).unwrap()),
-            SymbolKind::Punctuation => ASTNode::Punctuation(Punctuation::from_char(token.get_value().chars().next().unwrap()).unwrap()),
-            _ => ASTNode::Empty(),
-        }
-    }
-}
-#[derive(Debug)]
-pub struct SymbolNode {
-    pub kind: SymbolKind,
-    pub value: ASTNode,
-}
-impl SymbolNode {
-
-    pub fn new(kind: SymbolKind, value: ASTNode) -> SymbolNode {
-        SymbolNode { kind, value }
-    }
-    pub fn get_value(self) -> ASTNode {
-        self.value
-    }
-}
+use super::ast::{ASTNode, SymbolNode};
 pub struct Parser {
     symbols: Vec<SymbolNode>,
-    laxer: Lexer,
+    lexer: Lexer,
     current_line: u32,
 }
 
@@ -120,13 +14,13 @@ impl Parser {
     pub fn new(file_name: &str) -> Parser {
         Parser {
             symbols: Vec::new(),
-            laxer: Lexer::new(file_name),
+            lexer: Lexer::new(file_name),
             current_line: 1,
         }
     }
 
     pub fn parse(&mut self) {
-        while let Some(token) = self.laxer.get_next_token() {
+        while let Some(token) = self.lexer.get_next_token() {
             self.current_line = token.get_line_number();
             if token.get_kind() == SymbolKind::Whitespace {
                 continue;
@@ -178,8 +72,7 @@ impl Parser {
             }
         }
     self.create_ast_node(rule);
-        info!("{:?}", self.symbols);
-        debug!("{:?}", rule);
+        info!("asdf");
         visualize_ast(&self.symbols);
         true
     }
@@ -190,44 +83,22 @@ impl Parser {
             symbols.push_front(self.symbols.pop().unwrap());
         }
 
-        match rule.0 {
+        let node = match rule.0 {
             SymbolKind::Assign => {
-                let typ = Type::from_identifier(&symbols.pop_front().unwrap().get_value());
-                if typ.is_none() {
-                    error!("Error at line {}, Unknown type", self.current_line);
-                    std::process::exit(1);
+                match ASTNode::create_assign(&mut symbols, self.current_line) {
+                    Ok(node) => node,
+                    Err(msg) => {
+                        error!("{}", msg);
+                        std::process::exit(1);
+                    }
                 }
-                let typ = typ.unwrap();
-                let name = Box::new(symbols.pop_front().unwrap().get_value());
-                // Pop the '='
-                let _ = symbols.pop_front();
-                let expr = Box::new(symbols.pop_front().unwrap().value);
-                let assign_node = ASTNode::Assign {
-                    typ,
-                    name,
-                    expr,
-                };
-                info!("{:?}", self.symbols);
-
-                info!("{:?}", self.symbols);
-                self.symbols.push(SymbolNode::new(SymbolKind::Assign, assign_node));
             }
-            SymbolKind::Expr => {
-                let expr_node = symbols.pop_front().unwrap().get_value();
-                self.symbols.push(SymbolNode::new(SymbolKind::Expr, expr_node));
-            }
-            SymbolKind::BinaryOperation => {
-                let binary_operation_node = ASTNode::BinaryOperation {
-                    left: Box::new(symbols.pop_front().unwrap().get_value()),
-                    operation: Box::new(symbols.pop_front().unwrap().get_value()),
-                    right: Box::new(symbols.pop_front().unwrap().get_value()),
-                };
-                self.symbols.push(SymbolNode::new(SymbolKind::BinaryOperation, binary_operation_node));
-            }
+            SymbolKind::Expr => ASTNode::create_expr(&mut symbols),
+            SymbolKind::BinaryOperation => ASTNode::create_binary_op(&mut symbols),
+            _ => return,
+        };
 
-            _ => {}
-        }
-
+        self.symbols.push(SymbolNode::new(rule.0, node));
     }
 
 }
