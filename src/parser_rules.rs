@@ -4,19 +4,19 @@ use std::collections::HashMap;
 
 /*
 structure:
-Map by first symbol kind of the rule -> gets a list of all the rules that start with this symbol kind
+Map by last symbol kind of the rule -> gets a list of all the rules that start with this symbol kind
 -> every item in the list is a tuple of the LHS and RHS of the rule
  */
 pub static RULES: Lazy<HashMap<SymbolKind, Vec<(SymbolKind, Vec<SymbolKind>)>>> = Lazy::new(|| {
     let mut m = HashMap::new();
 
     m.insert(
-        SymbolKind::Identifier,
+        SymbolKind::Expr,
         vec![(
             SymbolKind::Assign,
             vec![
                 SymbolKind::Identifier,
-                SymbolKind::Punctuation,
+                SymbolKind::Operator,
                 SymbolKind::Expr,
             ],
         )],
