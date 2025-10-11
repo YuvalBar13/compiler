@@ -1,5 +1,5 @@
-use crate::lexer::{Lexer, SymbolKind, Token};
-use crate::parser_rules::RULES;
+use crate::lexer::lexer::{Lexer, SymbolKind, Token};
+use super::rules::RULES;
 use std::collections::VecDeque;
 use crate::info;
 

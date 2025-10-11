@@ -1,4 +1,4 @@
-use crate::lexer::SymbolKind;
+use crate::lexer::lexer::SymbolKind;
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
 
