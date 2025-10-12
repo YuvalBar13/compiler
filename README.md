@@ -11,14 +11,16 @@ The compiler is built around a classic multi-stage design, where each stage is r
 Each stage communicates through well-defined data structures to ensure modularity, clarity, and extensibility.
 
 ---
-
 ## 🧱 Compiler Architecture
 
 ### 1. **Lexical Analysis (Lexer)**
 The lexer converts raw source code into a stream of tokens — the smallest meaningful units of the language.  
 It identifies identifiers, keywords, literals, symbols, and operators.
 
-Output: `Vec<Token>`
+Tokens are **not stored in a collection**.  
+Instead, they are retrieved **one by one** through the `get_next_token()` method, which returns `Option<Token>` until the end of the source is reached.
+
+**Output:** `Option<Token>`
 
 ---
 
