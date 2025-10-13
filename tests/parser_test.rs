@@ -1,18 +1,18 @@
 use std::fs;
 use compiler::lexer::lexer::SymbolKind;
 use compiler::parser::ast::{ASTNode, SymbolNode};
-use compiler::parser::ast::ASTNode::Operator;
 use compiler::parser::types::{OperatorType, Type};
 use compiler::parser::parser::Parser;
 
 
 const FILE_NAME: &str = "test_parser.txt";
+
 #[test]
 fn test_basic_parser() {
     let source = "int x = 2 * 2 + 2;\nint y = 1;";
     fs::write(FILE_NAME, source).unwrap();
 
-    let mut parser = Parser::new("FILE_NAME");
+    let mut parser = Parser::new(FILE_NAME);
     parser.parse();
 
     let symbols = parser.get_symbols();
