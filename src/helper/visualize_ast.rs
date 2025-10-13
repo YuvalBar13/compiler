@@ -5,15 +5,15 @@ pub fn print_ast_tree(node: &ASTNode, prefix: String, is_last: bool) {
     let extension = if is_last { "    " } else { "│   " };
 
     match node {
-        ASTNode::Assign { typ, name, expr } => {
+        ASTNode::Assign { typ, name, value } => {
             println!("{}{}Assign", prefix, connector);
             let new_prefix = format!("{}{}", prefix, extension);
 
             println!("{}├── type: {:?}", new_prefix, typ);
             println!("{}├── name:", new_prefix);
             print_ast_tree(name, format!("{}│   ", new_prefix), false);
-            println!("{}└── expr:", new_prefix);
-            print_ast_tree(expr, format!("{}    ", new_prefix), true);
+            println!("{}└── value:", new_prefix);
+            print_ast_tree(value, format!("{}    ", new_prefix), true);
         }
 
         ASTNode::BinaryOperation { left, operation, right } => {
@@ -53,6 +53,10 @@ pub fn print_ast_tree(node: &ASTNode, prefix: String, is_last: bool) {
 
         ASTNode::Punctuation(p) => {
             println!("{}{}Punctuation({:?})", prefix, connector, p);
+        }
+        ASTNode::Expr(e) => {
+            println!("{}{}Expr", prefix, connector);
+            print_ast_tree(e, format!("{}    ", prefix), true);
         }
 
         ASTNode::Empty() => {

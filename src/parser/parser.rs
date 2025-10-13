@@ -34,20 +34,7 @@ impl Parser {
     }
 
     fn try_reduce(&mut self) {
-        let mut last_semicolon = false;
-        if self.symbols[self.symbols.len() - 1].kind == SymbolKind::Punctuation {
-            let ast_node = &self.symbols[self.symbols.len() - 1].value;
-            if let ASTNode::Punctuation(_) = ast_node {
-                last_semicolon = true;
-            }
-        }
-
-        let offset = if last_semicolon { 2 } else { 1 };
-        if self.symbols.len().checked_sub(offset).is_none() {
-            error!("Error at line {}, expected more symbols", self.current_line);
-            std::process::exit(1);
-        }
-        let rule_list = RULES.get(&self.symbols[self.symbols.len() - offset].kind);
+        let rule_list = RULES.get(&self.symbols[self.symbols.len() - 1].kind);
         if rule_list.is_none() {
             return;
         }
@@ -72,7 +59,6 @@ impl Parser {
             }
         }
     self.create_ast_node(rule);
-        info!("asdf");
         visualize_ast(&self.symbols);
         true
     }

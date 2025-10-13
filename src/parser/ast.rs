@@ -19,7 +19,9 @@ pub enum ASTNode {
     String(String),
     Bool(bool),
     Identifier(String),
-    Assign { typ: Type, name: Box<ASTNode>, expr: Box<ASTNode> },
+
+
+    Assign { typ: Type, name: Box<ASTNode>, value: Box<ASTNode> },
     BinaryOperation {
         left: Box<ASTNode>,
         right: Box<ASTNode>,
@@ -27,13 +29,16 @@ pub enum ASTNode {
     },
     Operator(OperatorType),
     Punctuation(Punctuation),
-    Empty(), // Empty node for none value kinds (=, +, -, etc)
+    Expr(Box<ASTNode>),
+    Empty(), //
 }
 impl ASTNode {
     pub fn from_token_value(token: &Token) -> ASTNode {
         match token.get_kind() {
             SymbolKind::Number => ASTNode::Number(token.get_value().parse().unwrap()),
             SymbolKind::Identifier => ASTNode::Identifier(token.get_value()),
+            SymbolKind::String => ASTNode::String(token.get_value()),
+            SymbolKind::Bool => ASTNode::Bool(token.get_value() == "true".to_string()),
             SymbolKind::Operator => ASTNode::Operator(OperatorType::from_char(token.get_value().chars().next().unwrap()).unwrap()),
             SymbolKind::Punctuation => ASTNode::Punctuation(Punctuation::from_char(token.get_value().chars().next().unwrap()).unwrap()),
             _ => ASTNode::Empty(),
@@ -44,9 +49,9 @@ impl ASTNode {
             .ok_or_else(|| format!("Unknown type at line {}", line))?;
         let name = Box::new(symbols.pop_front().unwrap().get_value());
         let _ = symbols.pop_front(); // Pop '='
-        let expr = Box::new(symbols.pop_front().unwrap().value);
+        let value = Box::new(symbols.pop_front().unwrap().value);
 
-        Ok(ASTNode::Assign { typ, name, expr })
+        Ok(ASTNode::Assign { typ, name, value })
     }
 
     pub fn create_binary_op(symbols: &mut VecDeque<SymbolNode>) -> ASTNode {
@@ -58,7 +63,7 @@ impl ASTNode {
     }
 
     pub fn create_expr(symbols: &mut VecDeque<SymbolNode>) -> ASTNode {
-        symbols.pop_front().unwrap().get_value()
+        ASTNode::Expr(Box::new(symbols.pop_front().unwrap().get_value()))
     }
 
 }

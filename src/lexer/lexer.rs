@@ -5,6 +5,8 @@ use std::io::{BufReader, Bytes, Read};
 pub enum SymbolKind {
     Identifier,
     Number,
+    String,
+    Bool,
     Punctuation,
     Operator,
     Whitespace,
@@ -22,6 +24,7 @@ impl SymbolKind {
         match current_state {
             SymbolKind::Identifier => char.is_alphanumeric() || char == '_',
             SymbolKind::Number => char.is_numeric(),
+            SymbolKind::String => true,
             _ => false,
         }
     }
@@ -29,6 +32,7 @@ impl SymbolKind {
         match char {
             'a'..='z' => Ok(SymbolKind::Identifier),
             '0'..='9' => Ok(SymbolKind::Number),
+            '"' => Ok(SymbolKind::String),
             '+' | '-' | '*' | '/' | '=' => Ok(SymbolKind::Operator),
             ' ' | '\n' | '\t' => Ok(SymbolKind::Whitespace),
             '(' | ')' | '{' | '}' | '[' | ']' | ';' => Ok(SymbolKind::Punctuation),
@@ -61,7 +65,6 @@ impl Token {
     pub fn get_line_number(&self) -> u32 {
         self.line_number
     }
-
 }
 #[derive(Eq, PartialEq, Debug)]
 enum LexerState {
@@ -76,18 +79,7 @@ pub struct Lexer {
     current_state: LexerState,
     current_line: u32,
 }
-macro_rules! start_new_token {
-    ($self:expr, $char:expr) => {{
-        let token_type = SymbolKind::choose_type_by_char($char)
-            .unwrap_or_else(|_| panic!("Error parsing token {}", $self.current_line));
 
-        $self.current_token = Some(Token::new(token_type, String::new(), $self.current_line));
-        if let Some(current_token) = $self.current_token.as_mut() {
-            current_token.lexeme.push($char);
-        }
-        $self.current_state = LexerState::InToken;
-    }};
-}
 impl Lexer {
     pub fn new(file_name: &str) -> Lexer {
         let file_content = BufReader::new(
@@ -101,33 +93,85 @@ impl Lexer {
             current_line: 1,
         }
     }
-
-
     pub fn get_next_token(&mut self) -> Option<Token> {
-        for byte in &mut self.file_content {
-            let char = byte.unwrap() as char;
+        while let Some(byte_result) = self.file_content.by_ref().next() {
+            let char = byte_result.unwrap() as char;
 
             if self.current_state == LexerState::InToken {
-                if let Some(current_token) = self.current_token.as_mut() {
-                    if SymbolKind::can_add_char(char, &current_token.kind) {
-                        current_token.lexeme.push(char);
-                    } else {
-                        if char == '\n' {
-                            self.current_line += 1;
-                        }
-                        self.current_state = LexerState::Start;
-                        let last_token = self.current_token.take().unwrap();
-                        start_new_token!(self, char);
-                        return Some(last_token);
-                    }
+                if let Some(token) = self.handle_in_token(char) {
+                    return Some(token);
                 }
-            }
-
-            if self.current_state == LexerState::Start {
-                start_new_token!(self, char);
+            } else if self.current_state == LexerState::Start {
+                self.start_new_token(char);
             }
         }
-        self.current_token.take()
+
+        self.finalize_token()
     }
 
+    fn handle_in_token(&mut self, char: char) -> Option<Token> {
+        if let Some(current_token) = self.current_token.as_mut() {
+            if SymbolKind::can_add_char(char, &current_token.kind) {
+                current_token.lexeme.push(char);
+            } else {
+                if char == '\n' {
+                    self.current_line += 1;
+                }
+                self.current_state = LexerState::Start;
+                let mut last_token = self.current_token.take().unwrap();
+                self.start_new_token(char);
+                Self::check_if_token_is_bool_and_change_the_kind(&mut last_token);
+                return Some(last_token);
+            }
+
+            if current_token.kind == SymbolKind::String && char == '"' {
+                self.current_state = LexerState::Start;
+                current_token.lexeme = current_token
+                    .lexeme
+                    .chars()
+                    .skip(1)
+                    .take(current_token.lexeme.chars().count() - 2)
+                    .collect();
+                return self.current_token.take();
+            }
+        }
+        None
+    }
+
+    fn start_new_token(&mut self, char: char) {
+        let token_type = SymbolKind::choose_type_by_char(char)
+            .unwrap_or_else(|_| panic!("Error parsing token {}", self.current_line));
+
+        self.current_token = Some(Token::new(token_type, String::new(), self.current_line));
+
+        if let Some(current_token) = self.current_token.as_mut() {
+            current_token.lexeme.push(char);
+        }
+
+        self.current_state = LexerState::InToken;
+    }
+
+    fn finalize_token(&mut self) -> Option<Token> {
+        if let Some(current_token) = self.current_token.as_mut() {
+            if current_token.kind == SymbolKind::Identifier
+                && (current_token.lexeme == "true" || current_token.lexeme == "false")
+            {
+                current_token.kind = SymbolKind::Bool;
+            }
+        }
+
+        let mut token = self.current_token.take()?;
+        Self::check_if_token_is_bool_and_change_the_kind(&mut token);
+        Some(token)
+    }
+
+    fn check_if_token_is_bool_and_change_the_kind(token: &mut Token) {
+        let mut token = token;
+
+        if token.get_kind() == SymbolKind::Identifier {
+            if token.lexeme == "true" || token.lexeme == "false" {
+                token.kind = SymbolKind::Bool;
+            }
+        }
+    }
 }

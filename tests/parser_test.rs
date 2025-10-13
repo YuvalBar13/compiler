@@ -22,7 +22,7 @@ fn test_basic_parser() {
             ASTNode::Assign {
                 typ: Type::Integer,
                 name: Box::new(ASTNode::Identifier("x".into())),
-                expr: Box::new(ASTNode::BinaryOperation {
+                value: Box::new(ASTNode::BinaryOperation {
                     left: Box::new(ASTNode::BinaryOperation {
                         left: Box::new(ASTNode::Number(2)),
                         right: Box::new(ASTNode::Number(2)),
@@ -38,7 +38,7 @@ fn test_basic_parser() {
             ASTNode::Assign {
                 typ: Type::Integer,
                 name: Box::new(ASTNode::Identifier("y".into())),
-                expr: Box::new(ASTNode::Number(1)),
+                value: Box::new(ASTNode::Number(1)),
             },
         ),
     ];
