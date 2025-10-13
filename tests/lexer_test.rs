@@ -1,7 +1,7 @@
 use compiler::lexer::lexer::{Lexer, SymbolKind};
 use std::fs;
 
-const FILE_NAME: &str = "test_input.txt";
+const FILE_NAME: &str = "lexer_test.txt";
 #[test]
 fn test_basic_tokens() {
     let source = "int x = 1;\ntest = 2 ( 2";

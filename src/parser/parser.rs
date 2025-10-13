@@ -1,7 +1,7 @@
 use crate::lexer::lexer::{Lexer, SymbolKind};
 use super::rules::RULES;
 use std::collections::VecDeque;
-use crate::{error, info};
+use crate::prelude::*;
 use crate::helper::visualize_ast::visualize_ast;
 use super::ast::{ASTNode, SymbolNode};
 pub struct Parser {
@@ -99,6 +99,10 @@ impl Parser {
         };
 
         self.symbols.push(SymbolNode::new(rule.0, node));
+    }
+
+    pub fn get_symbols(&self) -> &Vec<SymbolNode> {
+        &self.symbols
     }
 
 }

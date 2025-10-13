@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 use crate::lexer::lexer::{SymbolKind, Token};
-use crate::parser::types::{Operator, Punctuation, Type};
+use crate::parser::types::{OperatorType, Punctuation, Type};
 
 
 impl Type {
@@ -25,7 +25,7 @@ pub enum ASTNode {
         right: Box<ASTNode>,
         operation: Box<ASTNode>,
     },
-    Operator(Operator),
+    Operator(OperatorType),
     Punctuation(Punctuation),
     Empty(), // Empty node for none value kinds (=, +, -, etc)
 }
@@ -34,7 +34,7 @@ impl ASTNode {
         match token.get_kind() {
             SymbolKind::Number => ASTNode::Number(token.get_value().parse().unwrap()),
             SymbolKind::Identifier => ASTNode::Identifier(token.get_value()),
-            SymbolKind::Operator => ASTNode::Operator(Operator::from_char(token.get_value().chars().next().unwrap()).unwrap()),
+            SymbolKind::Operator => ASTNode::Operator(OperatorType::from_char(token.get_value().chars().next().unwrap()).unwrap()),
             SymbolKind::Punctuation => ASTNode::Punctuation(Punctuation::from_char(token.get_value().chars().next().unwrap()).unwrap()),
             _ => ASTNode::Empty(),
         }
@@ -62,7 +62,7 @@ impl ASTNode {
     }
 
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct SymbolNode {
     pub kind: SymbolKind,
     pub value: ASTNode,

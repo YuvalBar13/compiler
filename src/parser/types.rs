@@ -1,20 +1,20 @@
 
 #[derive(Debug, Eq, PartialEq, Hash)]
-pub enum Operator {
+pub enum OperatorType {
     Add,
     Sub,
     Mul,
     Div,
     Equal,
 }
-impl Operator {
-    pub fn from_char(char: char) -> Option<Operator> {
+impl OperatorType {
+    pub fn from_char(char: char) -> Option<OperatorType> {
         match char {
-            '+' => Some(Operator::Add),
-            '-' => Some(Operator::Sub),
-            '*' => Some(Operator::Mul),
-            '/' => Some(Operator::Div),
-            '=' => Some(Operator::Equal),
+            '+' => Some(OperatorType::Add),
+            '-' => Some(OperatorType::Sub),
+            '*' => Some(OperatorType::Mul),
+            '/' => Some(OperatorType::Div),
+            '=' => Some(OperatorType::Equal),
             _ => None,
         }
     }
