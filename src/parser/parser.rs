@@ -1,7 +1,6 @@
 use crate::lexer::lexer::{Lexer, SymbolKind};
 use super::rules::RULES;
 use std::collections::VecDeque;
-use crate::prelude::*;
 use crate::helper::visualize_ast::visualize_ast;
 use super::ast::{ASTNode, SymbolNode};
 pub struct Parser {
@@ -71,16 +70,12 @@ impl Parser {
 
         let node = match rule.0 {
             SymbolKind::Assign => {
-                match ASTNode::create_assign(&mut symbols, self.current_line) {
-                    Ok(node) => node,
-                    Err(msg) => {
-                        error!("{}", msg);
-                        std::process::exit(1);
-                    }
-                }
+                ASTNode::create_assign(&mut symbols)
             }
             SymbolKind::Expr => ASTNode::create_expr(&mut symbols),
             SymbolKind::BinaryOperation => ASTNode::create_binary_op(&mut symbols),
+            SymbolKind::Declaration => ASTNode::create_declaration(&mut symbols, self.current_line),
+            SymbolKind::DeclarationAssignment => ASTNode::create_declaration_assignment(&mut symbols, self.current_line),
             _ => return,
         };
 

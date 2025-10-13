@@ -21,7 +21,19 @@ pub enum ASTNode {
     Identifier(String),
 
 
-    Assign { typ: Type, name: Box<ASTNode>, value: Box<ASTNode> },
+    Declaration {
+        typ: Type,
+        name: Box<ASTNode>,
+    },
+    DeclarationAssignment {
+        typ: Type,
+        name: Box<ASTNode>,
+        value: Box<ASTNode>,
+    },
+    Assign {
+        name: Box<ASTNode>,
+        value: Box<ASTNode>,
+    },
     BinaryOperation {
         left: Box<ASTNode>,
         right: Box<ASTNode>,
@@ -44,14 +56,12 @@ impl ASTNode {
             _ => ASTNode::Empty(),
         }
     }
-    pub fn create_assign(symbols: &mut VecDeque<SymbolNode>, line: u32) -> Result<ASTNode, String> {
-        let typ = Type::from_identifier(&symbols.pop_front().unwrap().get_value())
-            .ok_or_else(|| format!("Unknown type at line {}", line))?;
+    pub fn create_assign(symbols: &mut VecDeque<SymbolNode>, ) -> ASTNode {
         let name = Box::new(symbols.pop_front().unwrap().get_value());
         let _ = symbols.pop_front(); // Pop '='
         let value = Box::new(symbols.pop_front().unwrap().value);
 
-        Ok(ASTNode::Assign { typ, name, value })
+        ASTNode::Assign {name, value }
     }
 
     pub fn create_binary_op(symbols: &mut VecDeque<SymbolNode>) -> ASTNode {
@@ -64,6 +74,34 @@ impl ASTNode {
 
     pub fn create_expr(symbols: &mut VecDeque<SymbolNode>) -> ASTNode {
         ASTNode::Expr(Box::new(symbols.pop_front().unwrap().get_value()))
+    }
+
+    pub fn create_declaration(symbols: &mut VecDeque<SymbolNode>, line: u32) -> ASTNode {
+        let typ = Type::from_identifier(&symbols.pop_front().unwrap().get_value())
+            .ok_or_else(|| format!("Unknown type at line {}", line));
+        if typ.is_err() {
+            std::process::exit(1);
+        }
+        let typ = typ.unwrap();
+        let name = Box::new(symbols.pop_front().unwrap().get_value());
+
+        ASTNode::Declaration {typ, name,}
+    }
+
+    pub fn create_declaration_assignment(symbols: &mut VecDeque<SymbolNode>, line: u32) -> ASTNode {
+        let typ = Type::from_identifier(&symbols.pop_front().unwrap().get_value())
+            .ok_or_else(|| format!("Unknown type at line {}", line));
+        if typ.is_err() {
+            std::process::exit(1);
+        }
+        let typ = typ.unwrap();
+        let name = Box::new(symbols.pop_front().unwrap().get_value());
+
+        let _ = symbols.pop_front(); // Pop '='
+        let value = Box::new(symbols.pop_front().unwrap().value);
+
+        ASTNode::DeclarationAssignment {typ, name, value,}
+
     }
 
 }

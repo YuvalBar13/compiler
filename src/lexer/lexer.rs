@@ -13,6 +13,8 @@ pub enum SymbolKind {
 
     // AST nodes
     Assign,
+    Declaration,
+    DeclarationAssignment,
     Expr,
     BinaryOperation,
 

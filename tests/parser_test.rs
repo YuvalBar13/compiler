@@ -9,7 +9,7 @@ const FILE_NAME: &str = "test_parser.txt";
 
 #[test]
 fn test_basic_parser() {
-    let source = "int x = 2 * 2 + 2;\nint y = 1;";
+    let source = "int x = 2 * 2 + 2;\ny = 1;";
     fs::write(FILE_NAME, source).unwrap();
 
     let mut parser = Parser::new(FILE_NAME);
@@ -18,8 +18,8 @@ fn test_basic_parser() {
     let symbols = parser.get_symbols();
     let expected = vec![
         SymbolNode::new(
-            SymbolKind::Assign,
-            ASTNode::Assign {
+            SymbolKind::DeclarationAssignment,
+            ASTNode::DeclarationAssignment {
                 typ: Type::Integer,
                 name: Box::new(ASTNode::Identifier("x".into())),
                 value: Box::new(ASTNode::Expr(Box::new(ASTNode::BinaryOperation {
@@ -36,12 +36,12 @@ fn test_basic_parser() {
         SymbolNode::new(
             SymbolKind::Assign,
             ASTNode::Assign {
-                typ: Type::Integer,
                 name: Box::new(ASTNode::Identifier("y".into())),
                 value: Box::new(ASTNode::Expr(Box::new(ASTNode::Number(1)))),
             },
         ),
     ];
+
 
 
 
