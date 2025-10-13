@@ -22,15 +22,15 @@ fn test_basic_parser() {
             ASTNode::Assign {
                 typ: Type::Integer,
                 name: Box::new(ASTNode::Identifier("x".into())),
-                value: Box::new(ASTNode::BinaryOperation {
-                    left: Box::new(ASTNode::BinaryOperation {
-                        left: Box::new(ASTNode::Number(2)),
-                        right: Box::new(ASTNode::Number(2)),
+                value: Box::new(ASTNode::Expr(Box::new(ASTNode::BinaryOperation {
+                    left: Box::new(ASTNode::Expr(Box::new(ASTNode::BinaryOperation {
+                        left: Box::new(ASTNode::Expr(Box::new(ASTNode::Number(2)))),
+                        right: Box::new(ASTNode::Expr(Box::new(ASTNode::Number(2)))),
                         operation: Box::new(ASTNode::Operator(OperatorType::Mul)),
-                    }),
-                    right: Box::new(ASTNode::Number(2)),
+                    }))),
+                    right: Box::new(ASTNode::Expr(Box::new(ASTNode::Number(2)))),
                     operation: Box::new(ASTNode::Operator(OperatorType::Add)),
-                }),
+                }))),
             },
         ),
         SymbolNode::new(
@@ -38,10 +38,13 @@ fn test_basic_parser() {
             ASTNode::Assign {
                 typ: Type::Integer,
                 name: Box::new(ASTNode::Identifier("y".into())),
-                value: Box::new(ASTNode::Number(1)),
+                value: Box::new(ASTNode::Expr(Box::new(ASTNode::Number(1)))),
             },
         ),
     ];
+
+
+
 
     assert_eq!(*symbols, expected, "Parsed output does not match expected AST");
 
