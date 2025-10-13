@@ -166,8 +166,6 @@ impl Lexer {
     }
 
     fn check_if_token_is_bool_and_change_the_kind(token: &mut Token) {
-        let mut token = token;
-
         if token.get_kind() == SymbolKind::Identifier {
             if token.lexeme == "true" || token.lexeme == "false" {
                 token.kind = SymbolKind::Bool;
