@@ -46,15 +46,16 @@ impl VariablesTable {
         self.scopes.pop();
     }
 
-    // check if variable exist at global or in current scope
-    fn find_variable(&self, name: &str) -> Option<&types::Type> {
-        let current_scope = self.scopes.last().unwrap().get_variable(name);
-        if current_scope.is_some() || self.scopes.len() == 1 {
-            current_scope
-        } else {
-            self.scopes.first().unwrap().get_variable(name)
+    fn find_variable(&self, name: &str) -> Option<&Type> {
+        for scope in self.scopes.iter().rev() {
+            if let Some(var) = scope.get_variable(name) {
+                return Some(var);
+            }
         }
+        None
     }
+
+
     fn add_variable(&mut self, name: String, typ: types::Type) {
         self.scopes.last_mut().unwrap().add_variable(name, typ);
     }
@@ -125,7 +126,7 @@ impl Semantics {
                 std::process::exit(1);
             }
             if let ASTNode::Expr(expr) = value_ast.as_ref() {
-                if !Self::validate_children_types(
+                if !Self::validate_expr_type(
                     expr,
                     self.variables_table.find_variable(name).unwrap(),
                 ) {
@@ -142,11 +143,11 @@ impl Semantics {
         self.declaration(typ, name_ast);
         self.assignment(name_ast, value_ast);
     }
-    fn validate_children_types(head: &ASTNode, expected_type: &Type) -> bool {
+    fn validate_expr_type(head: &ASTNode, expected_type: &Type) -> bool {
         match head {
             ASTNode::BinaryOperation { left, right, operation: _ } => {
-                Self::validate_children_types(left, expected_type)
-                    && Self::validate_children_types(right, expected_type)
+                Self::validate_expr_type(left, expected_type)
+                    && Self::validate_expr_type(right, expected_type)
             }
             _ => {
                 if let Some(actual) = head.inferred_type() {
