@@ -20,7 +20,7 @@ impl OperatorType {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum Type {
     Integer,
     String,
@@ -36,6 +36,7 @@ impl Type {
             _ => None,
         }
     }
+
 }
 
 

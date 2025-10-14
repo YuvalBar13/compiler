@@ -1,5 +1,6 @@
 use std::fs;
 use std::io::{BufReader, Bytes, Read};
+use crate::error;
 
 #[derive(Debug, Eq, PartialEq, Hash, Copy, Clone)]
 pub enum SymbolKind {
@@ -30,16 +31,16 @@ impl SymbolKind {
             _ => false,
         }
     }
-    pub fn choose_type_by_char(char: char) -> Result<SymbolKind, ()> {
+    pub fn choose_type_by_char(char: char) -> Option<SymbolKind> {
         match char {
-            'a'..='z' => Ok(SymbolKind::Identifier),
-            '0'..='9' => Ok(SymbolKind::Number),
-            '"' => Ok(SymbolKind::String),
-            '+' | '-' | '*' | '/' | '=' => Ok(SymbolKind::Operator),
-            ' ' | '\n' | '\t' => Ok(SymbolKind::Whitespace),
-            '(' | ')' | '{' | '}' | '[' | ']' | ';' => Ok(SymbolKind::Punctuation),
+            'a'..='z' | 'A'..='Z' => Some(SymbolKind::Identifier),
+            '0'..='9' => Some(SymbolKind::Number),
+            '"' => Some(SymbolKind::String),
+            '+' | '-' | '*' | '/' | '=' => Some(SymbolKind::Operator),
+            ' ' | '\n' | '\t' => Some(SymbolKind::Whitespace),
+            '(' | ')' | '{' | '}' | '[' | ']' | ';' => Some(SymbolKind::Punctuation),
 
-            _ => Err(()),
+            _ => None,
         }
     }
 }
@@ -99,6 +100,10 @@ impl Lexer {
         while let Some(byte_result) = self.file_content.by_ref().next() {
             let char = byte_result.unwrap() as char;
 
+            // windows is shit have to support this  :)
+            if char == '\r' {
+                continue;
+            }
             if self.current_state == LexerState::InToken {
                 if let Some(token) = self.handle_in_token(char) {
                     return Some(token);
@@ -141,8 +146,14 @@ impl Lexer {
     }
 
     fn start_new_token(&mut self, char: char) {
-        let token_type = SymbolKind::choose_type_by_char(char)
-            .unwrap_or_else(|_| panic!("Error parsing token {}", self.current_line));
+        let token_type = match SymbolKind::choose_type_by_char(char) {
+            Some(t) => t,
+            _ => {
+                error!("Error at line {}, parse token failed", self.current_line);
+                std::process::exit(1);
+            }
+        };
+
 
         self.current_token = Some(Token::new(token_type, String::new(), self.current_line));
 

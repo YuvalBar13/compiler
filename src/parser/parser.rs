@@ -56,7 +56,7 @@ impl Parser {
             {
                 return false;
             }
-        }
+        }    
     self.create_ast_node(rule);
         visualize_ast(&self.symbols);
         true
@@ -82,8 +82,8 @@ impl Parser {
         self.symbols.push(SymbolNode::new(rule.0, node));
     }
 
-    pub fn get_symbols(&self) -> &Vec<SymbolNode> {
-        &self.symbols
+    pub fn get_symbols(self) -> Vec<SymbolNode> {
+        self.symbols
     }
 
 }

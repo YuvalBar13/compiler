@@ -1,4 +1,5 @@
 use std::collections::VecDeque;
+use crate::error;
 use crate::lexer::lexer::{SymbolKind, Token};
 use crate::parser::types::{OperatorType, Punctuation, Type};
 
@@ -19,7 +20,6 @@ pub enum ASTNode {
     String(String),
     Bool(bool),
     Identifier(String),
-
 
     Declaration {
         typ: Type,
@@ -77,31 +77,42 @@ impl ASTNode {
     }
 
     pub fn create_declaration(symbols: &mut VecDeque<SymbolNode>, line: u32) -> ASTNode {
-        let typ = Type::from_identifier(&symbols.pop_front().unwrap().get_value())
-            .ok_or_else(|| format!("Unknown type at line {}", line));
-        if typ.is_err() {
-            std::process::exit(1);
-        }
-        let typ = typ.unwrap();
+        let typ = Self::get_type(symbols, line);
         let name = Box::new(symbols.pop_front().unwrap().get_value());
 
         ASTNode::Declaration {typ, name,}
     }
 
     pub fn create_declaration_assignment(symbols: &mut VecDeque<SymbolNode>, line: u32) -> ASTNode {
-        let typ = Type::from_identifier(&symbols.pop_front().unwrap().get_value())
-            .ok_or_else(|| format!("Unknown type at line {}", line));
-        if typ.is_err() {
-            std::process::exit(1);
-        }
-        let typ = typ.unwrap();
+        let typ = Self::get_type(symbols, line);
         let name = Box::new(symbols.pop_front().unwrap().get_value());
 
         let _ = symbols.pop_front(); // Pop '='
         let value = Box::new(symbols.pop_front().unwrap().value);
 
-        ASTNode::DeclarationAssignment {typ, name, value,}
+        ASTNode::DeclarationAssignment {typ, name, value}
+    }
 
+    fn get_type(symbols: &mut VecDeque<SymbolNode>, line_number: u32) -> Type
+    {
+        let token = symbols.pop_front().unwrap().get_value();
+        let typ = Type::from_identifier(&token);
+        if typ.is_none() {
+            if let ASTNode::Identifier(wrong_type) = token{
+                error!("Error at line: {} Unknown type {:?}", line_number, wrong_type);
+                std::process::exit(1);
+            }
+        }
+        typ.unwrap()
+    }
+
+    pub fn inferred_type(&self) -> Option<Type> {
+        match self {
+            ASTNode::Number(_) => Some(Type::Integer),
+            ASTNode::String(_) => Some(Type::String),
+            ASTNode::Bool(_) => Some(Type::Bool),
+            _ => None,
+        }
     }
 
 }
@@ -113,7 +124,7 @@ pub struct SymbolNode {
 impl SymbolNode {
 
     pub fn new(kind: SymbolKind, value: ASTNode) -> SymbolNode {
-        SymbolNode { kind, value }
+        SymbolNode { kind, value, }
     }
     pub fn get_value(self) -> ASTNode {
         self.value
