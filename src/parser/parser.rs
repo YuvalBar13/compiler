@@ -3,8 +3,8 @@ use super::rules::RULES;
 use std::collections::VecDeque;
 use crate::helper::visualize_ast::visualize_ast;
 use super::ast::{ASTNode, SymbolNode};
+
 pub struct Parser {
-    symbols: Vec<SymbolNode>,
     lexer: Lexer,
     current_line: u32,
 }
@@ -12,78 +12,83 @@ pub struct Parser {
 impl Parser {
     pub fn new(file_name: &str) -> Parser {
         Parser {
-            symbols: Vec::new(),
             lexer: Lexer::new(file_name),
             current_line: 1,
         }
     }
 
-    pub fn parse(&mut self) {
+    /// Parses the input and returns the list of top-level AST symbols
+    pub fn parse(&mut self) -> Vec<SymbolNode> {
+        let mut symbols: Vec<SymbolNode> = Vec::new();
+
         while let Some(token) = self.lexer.get_next_token() {
             self.current_line = token.get_line_number();
+
             if token.get_kind() == SymbolKind::Whitespace {
                 continue;
             }
-            self.symbols.push(SymbolNode {
+
+            symbols.push(SymbolNode {
                 kind: token.get_kind(),
                 value: ASTNode::from_token_value(&token),
             });
-            self.try_reduce();
+
+            self.try_reduce(&mut symbols);
         }
+
+        // Return the completed AST/symbol list after parsing
+        symbols
     }
 
-    fn try_reduce(&mut self) {
-        let rule_list = RULES.get(&self.symbols[self.symbols.len() - 1].kind);
-        if rule_list.is_none() {
+    fn try_reduce(&mut self, symbols: &mut Vec<SymbolNode>) {
+        let Some(rule_list) = RULES.get(&symbols[symbols.len() - 1].kind) else {
             return;
-        }
+        };
 
-        let rule_list = rule_list.unwrap();
         for rule in rule_list {
-            if self.check_symbols_in_rule(&rule) {
-                self.try_reduce();
+            if self.check_symbols_in_rule(symbols, rule) {
+                self.try_reduce(symbols);
             }
         }
     }
 
-    fn check_symbols_in_rule(&mut self, rule: &(SymbolKind, Vec<SymbolKind>)) -> bool {
-        for symbol in 1..rule.1.len(){
-            if self.symbols.len().checked_sub(1 + symbol).is_none() {
+    fn check_symbols_in_rule(
+        &mut self,
+        symbols: &mut Vec<SymbolNode>,
+        rule: &(SymbolKind, Vec<SymbolKind>),
+    ) -> bool {
+        for i in 1..rule.1.len() {
+            if symbols.len().checked_sub(1 + i).is_none() {
                 return false;
             }
-            if self.symbols[self.symbols.len() - 1 - symbol].kind
-                != rule.1[rule.1.len() - 1 - symbol]
-            {
+
+            if symbols[symbols.len() - 1 - i].kind != rule.1[rule.1.len() - 1 - i] {
                 return false;
             }
-        }    
-    self.create_ast_node(rule);
-        visualize_ast(&self.symbols);
+        }
+
+        self.create_ast_node(symbols, rule);
+        visualize_ast(symbols);
         true
     }
 
-    fn create_ast_node(&mut self, rule: &(SymbolKind, Vec<SymbolKind>)) {
-        let mut symbols: VecDeque<SymbolNode> = VecDeque::new();
+    fn create_ast_node(&mut self, symbols: &mut Vec<SymbolNode>, rule: &(SymbolKind, Vec<SymbolKind>)) {
+        let mut matched: VecDeque<SymbolNode> = VecDeque::new();
         for _ in 0..rule.1.len() {
-            symbols.push_front(self.symbols.pop().unwrap());
+            matched.push_front(symbols.pop().unwrap());
         }
 
         let node = match rule.0 {
-            SymbolKind::Assign => {
-                ASTNode::create_assign(&mut symbols)
+            SymbolKind::Assign => ASTNode::create_assign(&mut matched),
+            SymbolKind::Expr => ASTNode::create_expr(&mut matched),
+            SymbolKind::BinaryOperation => ASTNode::create_binary_op(&mut matched),
+            SymbolKind::Declaration => ASTNode::create_declaration(&mut matched, self.current_line),
+            SymbolKind::DeclarationAssignment => {
+                ASTNode::create_declaration_assignment(&mut matched, self.current_line)
             }
-            SymbolKind::Expr => ASTNode::create_expr(&mut symbols),
-            SymbolKind::BinaryOperation => ASTNode::create_binary_op(&mut symbols),
-            SymbolKind::Declaration => ASTNode::create_declaration(&mut symbols, self.current_line),
-            SymbolKind::DeclarationAssignment => ASTNode::create_declaration_assignment(&mut symbols, self.current_line),
             _ => return,
         };
 
-        self.symbols.push(SymbolNode::new(rule.0, node));
+        symbols.push(SymbolNode::new(rule.0, node));
     }
-
-    pub fn get_symbols(self) -> Vec<SymbolNode> {
-        self.symbols
-    }
-
 }

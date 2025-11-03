@@ -13,9 +13,8 @@ fn test_basic_parser() {
     fs::write(FILE_NAME, source).unwrap();
 
     let mut parser = Parser::new(FILE_NAME);
-    parser.parse();
+    let symbols =  parser.parse();
 
-    let symbols = parser.get_symbols();
     let expected = vec![
         SymbolNode::new(
             SymbolKind::DeclarationAssignment,
