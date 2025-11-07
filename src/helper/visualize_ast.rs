@@ -52,6 +52,7 @@ pub fn print_ast_tree(node: &ASTNode, prefix: String, is_last: bool) {
         ASTNode::Number(n) => println!("{}{}Number({})", prefix, connector, n),
         ASTNode::String(s) => println!("{}{}String(\"{}\")", prefix, connector, s),
         ASTNode::Bool(b) => println!("{}{}Bool({})", prefix, connector, b),
+        ASTNode::Char(c) => println!("{}{}Char({})", prefix, connector, c),
         ASTNode::Identifier(id) => println!("{}{}Identifier(\"{}\")", prefix, connector, id),
         ASTNode::Operator(op) => println!("{}{}Operator({:?})", prefix, connector, op),
         ASTNode::Punctuation(p) => println!("{}{}Punctuation({:?})", prefix, connector, p),
@@ -70,7 +71,6 @@ pub fn visualize_ast(ast: &Vec<crate::parser::ast::SymbolNode>) {
     println!("{} \n=== AST Visualization ===\n", MAGENTA);
     for (i, symbol_node) in ast.iter().enumerate() {
         let is_last = i == ast.len() - 1;
-        println!("SymbolNode {{ kind: {:?} }}", symbol_node.kind);
         print_ast_tree(&symbol_node.value, String::from(""), is_last);
         if !is_last {
             println!();

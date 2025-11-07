@@ -25,6 +25,7 @@ pub enum Type {
     Integer,
     String,
     Bool,
+    Char
 }
 
 impl Type {
@@ -33,7 +34,17 @@ impl Type {
             "int" => Some(Type::Integer),
             "string" => Some(Type::String),
             "bool" => Some(Type::Bool),
+            "char" => Some(Type::Char),
             _ => None,
+        }
+    }
+
+    pub fn to_size_asm(&self) -> i32 {
+        match self {
+            Type::Integer => 4,
+            Type::Bool => 1,
+            Type::Char => 1,
+            Type::String => 100,
         }
     }
 

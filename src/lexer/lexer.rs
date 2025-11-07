@@ -8,6 +8,7 @@ pub enum SymbolKind {
     Number,
     String,
     Bool,
+    Char,
     Punctuation,
     Operator,
     Whitespace,
@@ -28,6 +29,8 @@ impl SymbolKind {
             SymbolKind::Identifier => char.is_alphanumeric() || char == '_',
             SymbolKind::Number => char.is_numeric(),
             SymbolKind::String => true,
+            SymbolKind::Char => true,
+
             _ => false,
         }
     }
@@ -35,8 +38,9 @@ impl SymbolKind {
         match char {
             'a'..='z' | 'A'..='Z' => Some(SymbolKind::Identifier),
             '0'..='9' => Some(SymbolKind::Number),
-            '"' => Some(SymbolKind::String),
+            '"'  => Some(SymbolKind::String),
             '+' | '-' | '*' | '/' | '=' => Some(SymbolKind::Operator),
+            '\'' => Some(SymbolKind::Char),
             ' ' | '\n' | '\t' => Some(SymbolKind::Whitespace),
             '(' | ')' | '{' | '}' | '[' | ']' | ';' => Some(SymbolKind::Punctuation),
 
@@ -124,14 +128,15 @@ impl Lexer {
                 if char == '\n' {
                     self.current_line += 1;
                 }
+
                 self.current_state = LexerState::Start;
                 let mut last_token = self.current_token.take().unwrap();
                 self.start_new_token(char);
-                Self::check_if_token_is_bool_and_change_the_kind(&mut last_token);
+                Self::update_token_before_return(&mut last_token);
                 return Some(last_token);
             }
 
-            if current_token.kind == SymbolKind::String && char == '"' {
+            if (current_token.kind == SymbolKind::String && char == '"' ) || (current_token.kind == SymbolKind::Char && char == '\''){
                 self.current_state = LexerState::Start;
                 current_token.lexeme = current_token
                     .lexeme
@@ -174,15 +179,16 @@ impl Lexer {
         }
 
         let mut token = self.current_token.take()?;
-        Self::check_if_token_is_bool_and_change_the_kind(&mut token);
+        Self::update_token_before_return(&mut token);
         Some(token)
     }
 
-    fn check_if_token_is_bool_and_change_the_kind(token: &mut Token) {
+    fn update_token_before_return(token: &mut Token) {
         if token.get_kind() == SymbolKind::Identifier {
             if token.lexeme == "true" || token.lexeme == "false" {
                 token.kind = SymbolKind::Bool;
             }
         }
+
     }
 }

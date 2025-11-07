@@ -31,6 +31,10 @@ pub static RULES: Lazy<HashMap<SymbolKind, Vec<(SymbolKind, Vec<SymbolKind>)>>> 
         vec![(SymbolKind::Expr, vec![SymbolKind::String])],
     );
     m.insert(
+        SymbolKind::Char,
+        vec![(SymbolKind::Expr, vec![SymbolKind::Char])],
+    );
+    m.insert(
         SymbolKind::BinaryOperation,
         vec![(SymbolKind::Expr, vec![SymbolKind::BinaryOperation])],
     );

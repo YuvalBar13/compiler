@@ -1,3 +1,2 @@
-int x;
-x = 123;
-string y = "123";
+char x;
+int s;
